@@ -4,7 +4,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Route: Homepage
+# Route: Homepage 
 @app.route("/")
 def index():
     return render_template("index.html")
