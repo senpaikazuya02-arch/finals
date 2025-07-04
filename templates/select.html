@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}PhotoZ - select{% endblock %}
+
+{% block content %}
+
+    <div class="select-content">
+        <div class="select-grid">
+            <!--  -->
+            <div class="select-first-btn">
+                <a href="/photobooth/{{ session_id }}">
+                    <div class="photo-btn">
+                        <div class="photo-btn-text"><img src="{{url_for ('static', filename='textures/camera_icon.png')}}" alt=""></div>
+                    </div>
+                </a> 
+                <div class="photo-bottom-text">picture</div>
+            </div>
+            <!--  -->
+            <div class="select-second-btn">
+                <a href="/videobooth/{{ session_id }}">
+                    <div class="video-btn">
+                        <div class="video-btn-text"><img src="{{url_for ('static', filename='textures/video_icon.png')}}" alt=""></div>
+                    </div>
+                </a>
+                <div class="video-bottom-text">video</div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

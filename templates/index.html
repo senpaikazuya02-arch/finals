@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}PhotoZ - Home{% endblock %}
+
+{% block content %}
+
+    <div class="home-content">
+        <div class="home-grid">
+            <!--  -->
+            <div class="logo-home">
+                <img src="{{url_for ('static', filename='textures/NTC_LOGO.png')}}" alt="NTC" height="370">
+            </div>
+            <!--  -->
+            <div class="form-button-home">
+                <h1>Welcome to the Photobooth!</h1>
+                <h2>by iTech ko.</h2>
+                <form action="/scan">
+                    <button>Take a picture!</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

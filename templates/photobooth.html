@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}PhotoZ - Ongoing{% endblock %}
+
+{% block content %}
+
+    <div class="photobooth-content">
+        <div class="photobooth-grid">
+            <div class="ph-grid-1">
+                <video id="camera" autoplay playsinline width="1520" height="940"></video>
+                <canvas id="snapshot" width="640" height="480" style="display:none;"></canvas>
+
+                <h1 id="countdown" style="font-size: 48px; display: none;"></h1>
+
+            </div>
+           
+            <div class="ph-grid-2">
+                <div class="session-center">
+                    <div class="start-sess-btn">
+                        <button id="startBtn" onclick="startCountdown()" disabled>Start</button>
+                    </div>
+
+                    <div class="ongoing-text hidden">
+                        <h2>Ongoing session... </h2>
+                    </div>
+
+                    <div id="final-buttons" class="start-sess-btn" style="display:none;">
+                        <button onclick="finishSession()">Done</button>
+                    </div>
+                </div>
+                
+            </div>
+
+            <div class="ph-grid-3">
+                 <div class="preview-content">
+                    <div id="preview-1"></div>
+                    <div id="preview-2"></div>
+                    <div id="preview-3"></div>
+                    <div id="preview-4"></div>
+                </div>
+            </div>
+
+            <div id="instructionModal" class="photobooth-modal">
+                <div class="photobooth-modal-content">
+                    <h3>Picture Guide</h3>
+                    <p>You'll take 4 photos, each with a 5-second countdown. Get ready!</p>
+                    <button onclick="closeModal()">OK, I'm Ready</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+{% endblock %}
