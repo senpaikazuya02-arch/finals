@@ -1,6 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, base64
 import os, secrets, uuid, sqlite3
 from datetime import datetime
+from PIL import Image
+from io import BytesIO
+import qrcode
 
 app = Flask(__name__)
 
@@ -58,6 +61,29 @@ def photobooth(session_id):
 @app.route("/videobooth/<session_id>")
 def videobooth(session_id):
     return render_template("videobooth.html", session_id=session_id)
+
+@app.route('/save_session/<session_id>', methods=['POST'])
+def save_session(session_id):
+    data = request.get_json()
+    photos = data.get('photos', [])
+
+    folder_path = os.path.join('static', 'results', session_id)
+    os.makedirs(folder_path, exist_ok=True)
+
+    # Save each photo
+    for idx, photo_data in enumerate(photos):
+        photo_bytes = base64.b64decode(photo_data.split(',')[1])
+        with open(os.path.join(folder_path, f'photo_{idx+1}.jpg'), 'wb') as f:
+            f.write(photo_bytes)
+
+    # TODO: Generate a .mp4 later (can use moviepy)
+
+    # Generate QR Code
+    result_url = f"http://localhost:5000/result/{session_id}"  # Change to your domain in prod
+    qr = qrcode.make(result_url)
+    qr.save(os.path.join(folder_path, 'qr.png'))
+
+    return jsonify({'status': 'success'})
 
 # Route: Result Page
 @app.route("/result/<session_id>")

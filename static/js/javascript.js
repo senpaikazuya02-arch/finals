@@ -136,3 +136,22 @@ navigator.mediaDevices.getUserMedia({ video: true })
   .catch(err => {
     console.error('Error accessing camera', err);
 });
+
+function finishSession() {
+  const sessionId = "{{ session_id }}";
+
+  fetch(`/save_session/${sessionId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ photos })
+  })
+  .then(response => {
+    if (response.ok) {
+      window.location.href = `/result/${sessionId}`;
+    } else {
+      alert("Failed to save session");
+    }
+  });
+}

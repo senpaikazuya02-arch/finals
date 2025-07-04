@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}PhotoZ - Result{% endblock %}
+
+{% block content %}
+<div class="result-content">
+    <h2>Your Session Result</h2>
+
+    <div class="result-grid">
+        <img src="{{ url_for('static', filename='results/' + session_id + '/photo_1.jpg') }}" width="160">
+        <img src="{{ url_for('static', filename='results/' + session_id + '/photo_2.jpg') }}" width="160">
+        <img src="{{ url_for('static', filename='results/' + session_id + '/photo_3.jpg') }}" width="160">
+        <img src="{{ url_for('static', filename='results/' + session_id + '/photo_4.jpg') }}" width="160">
+    </div>
+
+    <div style="margin-top: 30px;">
+        <a href="{{ url_for('static', filename='results/' + session_id + '/photo_1.jpg') }}" download>Download Photo 1</a><br>
+        <a href="{{ url_for('static', filename='results/' + session_id + '/photo_2.jpg') }}" download>Download Photo 2</a><br>
+        <a href="{{ url_for('static', filename='results/' + session_id + '/photo_3.jpg') }}" download>Download Photo 3</a><br>
+        <a href="{{ url_for('static', filename='results/' + session_id + '/photo_4.jpg') }}" download>Download Photo 4</a><br>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <h3>Scan QR to view/download later:</h3>
+        <img src="{{ url_for('static', filename='results/' + session_id + '/qr.png') }}" width="160">
+    </div>
+
+    <div style="margin-top: 40px;">
+        <a href="/reset"><button>Finish</button></a>
+    </div>
+</div>
+{% endblock %}
