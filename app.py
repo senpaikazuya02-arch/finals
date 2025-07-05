@@ -66,30 +66,33 @@ def videobooth(session_id):
 @app.route('/save_session/<session_id>', methods=['POST'])
 def save_session(session_id):
     data = request.get_json()
-    photos = data.get('photos', [])
+    photos = data['photos']
 
     folder_path = os.path.join('static', 'results', session_id)
     os.makedirs(folder_path, exist_ok=True)
 
     # Save each photo
     for idx, photo_data in enumerate(photos):
-        photo_bytes = base64.b64decode(photo_data.split(',')[1])
-        with open(os.path.join(folder_path, f'photo_{idx+1}.jpg'), 'wb') as f:
-            f.write(photo_bytes)
+        img_data = photo_data.split(',')[1]  
+        file_path = os.path.join(folder_path, f'photo_{idx + 1}.jpg')
+        with open(file_path, 'wb') as f:
+            f.write(base64.b64decode(img_data))
 
-    # TODO: Generate a .mp4 later (can use moviepy)
-
-    # Generate QR Code
-    result_url = f"http://localhost:5000/result/{session_id}"  # Change to your domain in prod
+    result_url = f"http://localhost:5000/download/{session_id}"  # Change to your domain in prod
     qr = qrcode.make(result_url)
     qr.save(os.path.join(folder_path, 'qr.png'))
 
-    return jsonify({'status': 'success'})
+    return jsonify({'status': 'success', 'session_id': session_id})
 
 # Route: Result Page
 @app.route("/result/<session_id>")
 def result(session_id):
     return render_template("result.html", session_id=session_id)
+
+# Route: Download Page
+@app.route('/download/<session_id>')
+def download_page(session_id):
+    return render_template("download.html", session_id=session_id)
 
 # Route: Reset to Homepage
 @app.route("/reset")

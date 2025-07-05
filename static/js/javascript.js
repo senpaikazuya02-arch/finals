@@ -138,20 +138,18 @@ navigator.mediaDevices.getUserMedia({ video: true })
 });
 
 function finishSession() {
-  const sessionId = "{{ session_id }}";
-
   fetch(`/save_session/${sessionId}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ photos })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      photos: photos
+    })
   })
-  .then(response => {
-    if (response.ok) {
-      window.location.href = `/result/${sessionId}`;
-    } else {
-      alert("Failed to save session");
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      window.location.href = `/result/${data.session_id}`;
     }
   });
 }
+
