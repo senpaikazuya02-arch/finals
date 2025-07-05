@@ -150,7 +150,7 @@ function finishSession() {
     if (data.status === 'success') {
       localStorage.setItem('photoUrls', JSON.stringify(data.photos));
       localStorage.setItem('qrUrl', data.qr_url);
-      window.location.href = `/download/${sessionId}`;
+      window.location.href = `/result/${sessionId}`;
     }
   });
 }
