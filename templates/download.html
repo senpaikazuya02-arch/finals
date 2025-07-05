@@ -5,12 +5,6 @@
 {% block content %}
   <div class="download-content">
     <h1>Your Session Photos</h1>
-
-    <div style="margin-bottom: 20px;">
-      <h3>Scan to access later:</h3>
-      <img src="{{ url_for('static', filename='results/' + session_id + '/qr.png') }}" alt="QR Code" width="150">
-    </div>
-
     <div>
       {% for i in range(1, 5) %}
         <div style="margin-bottom: 15px;">
