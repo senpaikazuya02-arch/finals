@@ -78,7 +78,7 @@ def save_session(session_id):
         with open(file_path, 'wb') as f:
             f.write(base64.b64decode(img_data))
 
-    result_url = f"http://localhost:5000/download/{session_id}"  # Change to your domain in prod
+    result_url = f"http://photoz-qk29.onrender.com/download/{session_id}"  # Change to your domain in prod
     qr = qrcode.make(result_url)
     qr.save(os.path.join(folder_path, 'qr.png'))
 
