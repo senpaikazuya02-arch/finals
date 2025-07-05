@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, base64
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import base64
 import os, secrets, uuid, sqlite3
 from datetime import datetime
 from PIL import Image
