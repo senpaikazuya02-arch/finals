@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import base64
-import os, uuid, sqlite3
+import os, secrets, uuid, sqlite3, io
 from datetime import datetime
 from PIL import Image
 from io import BytesIO
