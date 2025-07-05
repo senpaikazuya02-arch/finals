@@ -1,10 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import base64
-import os, secrets, uuid, sqlite3
+import os, uuid, sqlite3
 from datetime import datetime
 from PIL import Image
 from io import BytesIO
 import qrcode
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+    cloud_name="dhc8ckfmc",
+    api_key="589785367198677",
+    api_secret="3mdsBSxQGOXW51MeGZcjYzB2SKI",
+    secure=True
+)
 
 app = Flask(__name__)
 
@@ -68,21 +77,26 @@ def save_session(session_id):
     data = request.get_json()
     photos = data['photos']
 
-    folder_path = os.path.join('static', 'results', session_id)
-    os.makedirs(folder_path, exist_ok=True)
-
-    # Save each photo
+    upload_urls = []
     for idx, photo_data in enumerate(photos):
-        img_data = photo_data.split(',')[1]  
-        file_path = os.path.join(folder_path, f'photo_{idx + 1}.jpg')
-        with open(file_path, 'wb') as f:
-            f.write(base64.b64decode(img_data))
+        img_base64 = photo_data.split(',')[1]
+        upload_result = cloudinary.uploader.upload(
+            f"data:image/png;base64,{img_base64}",
+            folder=f"sessions/{session_id}",
+            public_id=f"photo_{idx + 1}",
+            overwrite=True
+        )
+        upload_urls.append(upload_result['secure_url'])
 
-    result_url = f"http://photoz-qk29.onrender.com/download/{session_id}"  # Change to your domain in prod
+    result_url = url_for('download_page', session_id=session_id, _external=True)
     qr = qrcode.make(result_url)
-    qr.save(os.path.join(folder_path, 'qr.png'))
+    qr_stream = io.BytesIO()
+    qr.save(qr_stream, format='PNG')
+    qr_stream.seek(0)
+    qr_upload = cloudinary.uploader.upload(qr_stream, folder=f"sessions/{session_id}", public_id="qr", resource_type="image")
+    qr_url = qr_upload['secure_url']
 
-    return jsonify({'status': 'success', 'session_id': session_id})
+    return jsonify({'status': 'success', 'session_id': session_id, 'photos': upload_urls, 'qr_url': qr_url})
 
 # Route: Result Page
 @app.route("/result/<session_id>")

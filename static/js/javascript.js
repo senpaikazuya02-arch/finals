@@ -145,10 +145,12 @@ function finishSession() {
       photos: photos
     })
   })
-  .then(response => response.json())
+  .then(res => res.json())
   .then(data => {
     if (data.status === 'success') {
-      window.location.href = `/result/${data.session_id}`;
+      localStorage.setItem('photoUrls', JSON.stringify(data.photos));
+      localStorage.setItem('qrUrl', data.qr_url);
+      window.location.href = `/download/${sessionId}`;
     }
   });
 }

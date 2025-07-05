@@ -1,19 +1,38 @@
 {% extends "base.html" %}
 
-{% block title %}Download Your Photos{% endblock %}
-
 {% block content %}
-  <div class="download-content">
-    <h1>Your Session Photos</h1>
-    <div>
-      {% for i in range(1, 5) %}
-        <div style="margin-bottom: 15px;">
-          <img src="{{ url_for('static', filename='results/' + session_id + '/photo_' ~ i ~ '.jpg') }}" width="200"><br>
-          <a href="{{ url_for('static', filename='results/' + session_id + '/photo_' ~ i ~ '.jpg') }}" download>
-            Download Photo {{ i }}
-          </a>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
+<h1>Your Session</h1>
+<img src="{{ qr_url }}" alt="QR for later">
+<div>
+  {% for url in photo_urls %}
+    <img src="{{ url }}" width="200"><br>
+    <a href="{{ url }}" download>Download Photo</a><br><br>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const photoUrls = JSON.parse(localStorage.getItem('photoUrls') || '[]');
+  const qrUrl = localStorage.getItem('qrUrl');
+
+  if (qrUrl) {
+    document.querySelector('img[alt="QR for later"]').src = qrUrl;
+  }
+
+  const container = document.querySelector('div');
+  photoUrls.forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.width = 200;
+    container.appendChild(img);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'photo.png';
+    link.textContent = 'Download Photo';
+    container.appendChild(link);
+    container.appendChild(document.createElement('br'));
+  });
+</script>
 {% endblock %}
