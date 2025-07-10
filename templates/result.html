@@ -3,118 +3,130 @@
 {% block title %}Session QR Code{% endblock %}
 
 {% block content %}
-  <div class="qr-result-page" style="text-align: center;">
-    <h2>Scan or Tap the QR Code Below</h2>
-    <div id="qr-container">
-      <!-- Loading state -->
-      <div id="loading-state" class="state-message">
-        <div class="spinner"></div>
-        <p>Generating your QR code...</p>
-      </div>
-      
-      <!-- Success state (hidden initially) -->
-      <div id="success-state" class="state-message" style="display: none;">
-        <img id="qr-image" src="" alt="Session QR Code" class="qr-image">
-        <div class="qr-actions">
-          <a id="download-link" href="" class="download-button" download="session_qr.png">
-            Download QR Code
-          </a>
-        </div>
-      </div>
-      
-      <!-- Error state (hidden initially) -->
-      <div id="error-state" class="state-message" style="display: none;">
-        <p class="error-text">Failed to load QR code.</p>
-        <button id="retry-button" class="retry-button">Try Again</button>
+<div class="qr-result-page" style="text-align: center;">
+  <h2>Scan or Tap the QR Code Below</h2>
+  
+  <div id="qr-container">
+    <!-- Loading State -->
+    <div id="loading-state">
+      <div class="spinner"></div>
+      <p>Generating your QR code...</p>
+      <p id="loading-details" style="font-size: 0.8em; color: #666;"></p>
+    </div>
+    
+    <!-- Success State (hidden initially) -->
+    <div id="success-state" style="display: none;">
+      <img id="qr-image" src="" alt="Session QR Code" style="width: 300px; height: 300px;">
+      <div style="margin-top: 15px;">
+        <a id="download-link" href="" class="button" download="session_qr.png">
+          Download QR Code
+        </a>
       </div>
     </div>
+    
+    <!-- Error State (hidden initially) -->
+    <div id="error-state" style="display: none;">
+      <p style="color: #e74c3c;">Failed to load QR code.</p>
+      <button id="retry-button" class="button">Try Again</button>
+      <p id="error-details" style="font-size: 0.8em; color: #666;"></p>
+    </div>
   </div>
+</div>
 
-  <style>
-    .qr-image {
-      width: 300px;
-      height: 300px;
-      border: 1px solid #ddd;
-      padding: 10px;
-      background: white;
-    }
-    .state-message {
-      margin: 20px 0;
-    }
-    .spinner {
-      border: 4px solid rgba(0, 0, 0, 0.1);
-      border-radius: 50%;
-      border-top: 4px solid #3498db;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .download-button, .retry-button {
-      display: inline-block;
-      padding: 10px 20px;
-      background: #3498db;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      margin-top: 15px;
-    }
-    .error-text {
-      color: #e74c3c;
-    }
-  </style>
+<style>
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid #3498db;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .button {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const loadingState = document.getElementById('loading-state');
-    const successState = document.getElementById('success-state');
-    const errorState = document.getElementById('error-state');
-    const qrImage = document.getElementById('qr-image');
-    const downloadLink = document.getElementById('download-link');
-    const retryButton = document.getElementById('retry-button');
+document.addEventListener('DOMContentLoaded', function() {
+  const loadingState = document.getElementById('loading-state');
+  const successState = document.getElementById('success-state');
+  const errorState = document.getElementById('error-state');
+  const qrImage = document.getElementById('qr-image');
+  const downloadLink = document.getElementById('download-link');
+  const retryButton = document.getElementById('retry-button');
+  const loadingDetails = document.getElementById('loading-details');
+  const errorDetails = document.getElementById('error-details');
 
-    function displayQR() {
-      const qrUrl = localStorage.getItem('qrUrl');
-      
-      if (qrUrl) {
-        // Add cache busting parameter if not already present
-        const finalUrl = qrUrl.includes('?') ? qrUrl : `${qrUrl}?t=${new Date().getTime()}`;
-        
-        qrImage.src = finalUrl;
-        downloadLink.href = finalUrl;
-        
-        qrImage.onload = function() {
-          loadingState.style.display = 'none';
-          successState.style.display = 'block';
-        };
-        
-        qrImage.onerror = function() {
-          console.error('Failed to load QR image:', finalUrl);
-          loadingState.style.display = 'none';
-          errorState.style.display = 'block';
-        };
-      } else {
-        console.error('No QR URL found in localStorage');
-        loadingState.style.display = 'none';
-        errorState.style.display = 'block';
-      }
+  // Debugging info
+  loadingDetails.textContent = `Session ID: ${localStorage.getItem('sessionId') || 'none'}`;
+
+  function loadQRCode() {
+    const qrUrl = localStorage.getItem('qrUrl');
+    console.log('Attempting to load QR from:', qrUrl); // Debug log
+
+    if (!qrUrl) {
+      showError('No QR code URL found in storage');
+      return;
     }
 
-    // Initial attempt
-    displayQR();
+    // Create new image element to test load
+    const testImage = new Image();
+    testImage.onload = function() {
+      // Only set the source if image loads successfully
+      qrImage.src = qrUrl;
+      downloadLink.href = qrUrl;
+      loadingState.style.display = 'none';
+      successState.style.display = 'block';
+      console.log('QR code loaded successfully');
+    };
+    testImage.onerror = function() {
+      showError(`Failed to load QR image from URL: ${qrUrl}`);
+      console.error('Image load error', {
+        url: qrUrl,
+        localStorage: localStorage.getItem('qrUrl')
+      });
+    };
+    testImage.src = qrUrl;
+  }
 
-    // Retry functionality
-    retryButton.addEventListener('click', function() {
-      errorState.style.display = 'none';
-      loadingState.style.display = 'block';
-      displayQR();
-    });
+  function showError(message) {
+    loadingState.style.display = 'none';
+    errorState.style.display = 'block';
+    errorDetails.textContent = message;
+    console.error(message);
+  }
+
+  // Initial load attempt
+  loadQRCode();
+
+  // Retry functionality
+  retryButton.addEventListener('click', function() {
+    errorState.style.display = 'none';
+    loadingState.style.display = 'block';
+    loadQRCode();
   });
+
+  // Fallback: If still loading after 10 seconds, show error
+  setTimeout(() => {
+    if (loadingState.style.display !== 'none') {
+      showError('Timeout while loading QR code. The server might be taking too long to respond.');
+    }
+  }, 10000);
+});
 </script>
 {% endblock %}
