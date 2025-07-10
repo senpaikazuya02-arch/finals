@@ -3,10 +3,23 @@
 {% block title %}Session QR Code{% endblock %}
 
 {% block content %}
-  <div class="qr-result-page">
+  <div class="qr-result-page" style="text-align: center;">
     <h2>Scan or Tap the QR Code Below</h2>
-    <a href="{{ url_for('download_page', session_id=session_id) }}">
-      <img src="{{ url_for('static', filename='results/' + session_id + '/qr.png') }}" alt="Download QR" style="width: 300px; height: 300px;">
-    </a>
+    <img id="qrImage" src="" alt="Download QR" style="width: 300px; height: 300px;">
+    <br>
+    <a id="downloadLink" href="" target="_blank">Or tap here if the image doesn't load</a>
   </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const qrUrl = localStorage.getItem('qrUrl');
+
+  if (qrUrl) {
+    document.getElementById('qrImage').src = qrUrl;
+    document.getElementById('downloadLink').href = qrUrl;
+  } else {
+    document.querySelector('.qr-result-page').innerHTML = '<p>QR Code not found. Please try again.</p>';
+  }
+</script>
 {% endblock %}
