@@ -7,12 +7,19 @@ from io import BytesIO
 import qrcode
 import cloudinary
 import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 
 cloudinary.config(
     cloud_name="dhc8ckfmc",
     api_key="589785367198677",
     api_secret="3mdsBSxQGOXW51MeGZcjYzB2SKI",
     secure=True
+)
+
+cloudinary.uploader.upload(
+    "test.jpg",  # use an actual image path
+    folder="sessions/test-folder",
+    public_id="photo_test"
 )
 
 app = Flask(__name__)
