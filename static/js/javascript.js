@@ -137,60 +137,21 @@ navigator.mediaDevices.getUserMedia({ video: true })
     console.error('Error accessing camera', err);
 });
 
-async function finishSession() {
-  try {
-    // Show loading state immediately
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    if (loadingIndicator) loadingIndicator.style.display = 'block';
-
-    const response = await fetch(`/save_session/${sessionId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos: photos })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Server response:', data); // Debug log
-
+function finishSession() {
+  fetch(`/save_session/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      photos: photos
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
     if (data.status === 'success') {
-      // Add cache-busting parameter
-      const qrUrl = `${data.qr_url}?t=${Date.now()}`;
-      
-      // Double-verify URL before storing
-      const urlValid = await verifyUrl(qrUrl);
-      if (!urlValid) {
-        throw new Error('QR URL is not accessible');
-      }
-
-      // Store in localStorage
-      localStorage.setItem('qrUrl', qrUrl);
-      console.log('Stored QR URL:', qrUrl); // Debug log
-
-      // Ensure storage is complete before redirect
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // Redirect
+      localStorage.setItem('photoUrls', JSON.stringify(data.photos));
+      localStorage.setItem('qrUrl', data.qr_url);
       window.location.href = `/result/${sessionId}`;
-    } else {
-      throw new Error(data.message || 'Server returned error status');
     }
-  } catch (error) {
-    console.error('Session save failed:', error);
-    alert(`Error: ${error.message}\nPlease try again.`);
-    if (loadingIndicator) loadingIndicator.style.display = 'none';
-  }
+  });
 }
 
-// Helper function to verify URL accessibility
-async function verifyUrl(url) {
-  try {
-    const response = await fetch(url, { method: 'HEAD' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
