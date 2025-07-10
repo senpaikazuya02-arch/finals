@@ -94,6 +94,8 @@ def save_session(session_id):
             overwrite=True
         )
         upload_urls.append(upload_result['secure_url'])
+        print(f"Uploaded photo {idx + 1} successfully")
+
 
     result_url = url_for('download_page', session_id=session_id, _external=True)
     qr = qrcode.make(result_url)
@@ -104,11 +106,23 @@ def save_session(session_id):
             qr_stream, 
             folder=f"sessions/{session_id}", 
             public_id="qr", 
-            resource_type="image"
+            resource_type="image",
+            invalidate=True
         )
-    qr_url = qr_upload['secure_url']
+    
+    qr_url, options = cloudinary_url(
+            qr_upload['public_id'],
+            format="png",
+            version=qr_upload['version'],
+            type="upload"
+        )
 
-    return jsonify({'status': 'success', 'session_id': session_id, 'photos': upload_urls, 'qr_url': qr_url})
+    return jsonify({
+        'status': 'success', 
+        'session_id': session_id, 
+        'photos': upload_urls, 
+        'qr_url': qr_url
+    })
 
 # Route: Result Page
 @app.route("/result/<session_id>")

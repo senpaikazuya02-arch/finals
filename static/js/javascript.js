@@ -145,13 +145,33 @@ function finishSession() {
       photos: photos
     })
   })
-  .then(res => res.json())
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
   .then(data => {
     if (data.status === 'success') {
+      console.log('Cloudinary URLs received:', {
+        photos: data.photos,
+        qr_url: data.qr_url
+      });
+      
+      // Store URLs with timestamp to avoid cache issues
+      const timestamp = new Date().getTime();
       localStorage.setItem('photoUrls', JSON.stringify(data.photos));
-      localStorage.setItem('qrUrl', data.qr_url);
+      localStorage.setItem('qrUrl', `${data.qr_url}?t=${timestamp}`);
+      
+      // Immediate redirect
       window.location.href = `/result/${sessionId}`;
+    } else {
+      throw new Error(data.message || 'Unknown server error');
     }
+  })
+  .catch(error => {
+    console.error('Session save failed:', error);
+    alert('Failed to save session: ' + error.message);
+    document.getElementById('loadingIndicator').style.display = 'none';
   });
 }
-
