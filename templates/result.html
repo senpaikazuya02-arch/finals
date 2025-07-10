@@ -14,7 +14,6 @@
 {% block scripts %}
 <script>
   const qrUrl = localStorage.getItem('qrUrl');
-s
   if (qrUrl) {
     document.getElementById('qrImage').src = qrUrl;
     document.getElementById('downloadLink').href = qrUrl;

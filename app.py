@@ -100,7 +100,12 @@ def save_session(session_id):
     qr_stream = io.BytesIO()
     qr.save(qr_stream, format='PNG')
     qr_stream.seek(0)
-    qr_upload = cloudinary.uploader.upload(qr_stream, folder=f"sessions/{session_id}", public_id="qr", resource_type="image")
+    qr_upload = cloudinary.uploader.upload(
+            qr_stream, 
+            folder=f"sessions/{session_id}", 
+            public_id="qr", 
+            resource_type="image"
+        )
     qr_url = qr_upload['secure_url']
 
     return jsonify({'status': 'success', 'session_id': session_id, 'photos': upload_urls, 'qr_url': qr_url})
