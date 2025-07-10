@@ -151,6 +151,7 @@ function finishSession() {
       localStorage.setItem('photoUrls', JSON.stringify(data.photos));
       localStorage.setItem('qrUrl', data.qr_url);
       window.location.href = `/result/${sessionId}`;
+      console.log(localStorage.getItem('qrUrl'));
     }
   });
 }

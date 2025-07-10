@@ -16,12 +16,6 @@ cloudinary.config(
     secure=True
 )
 
-cloudinary.uploader.upload(
-    "static/textures/camera_icon.png",  # use an actual image path
-    folder="sessions/test-folder",
-    public_id="photo_test"
-)
-
 app = Flask(__name__)
 
 # Route: Homepage 
@@ -102,20 +96,14 @@ def save_session(session_id):
     qr.save(qr_stream, format='PNG')
     qr_stream.seek(0)
     qr_upload = cloudinary.uploader.upload(
-            qr_stream, 
-            folder=f"sessions/{session_id}", 
-            public_id="qr", 
-            resource_type="image",
-            invalidate=True
-        )
-    
-    qr_url, options = cloudinary_url(
-            qr_upload['public_id'],
-            format="png",
-            version=qr_upload['version'],
-            type="upload"
-        )
-
+        qr_stream, 
+        folder=f"sessions/{session_id}", 
+        public_id="qr", 
+        resource_type="image",
+        invalidate=True
+    )
+    qr_url = qr_upload['secure_url']
+    print("QR URL:", qr_url)
 
     return jsonify({
         'status': 'success', 
