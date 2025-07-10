@@ -17,7 +17,7 @@ cloudinary.config(
 )
 
 cloudinary.uploader.upload(
-    "/home/yukinero/Documents/Projects/PhotoZ/static/textures/camera_icon.png",  # use an actual image path
+    "static/textures/camera_icon.png",  # use an actual image path
     folder="sessions/test-folder",
     public_id="photo_test"
 )
