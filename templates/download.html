@@ -6,11 +6,11 @@
   <div class="download-content">
     <h1>Your Session Photos</h1>
     <div>
-      {% for i in range(1, 5) %}
+      {% for url in photos %}
         <div style="margin-bottom: 15px;">
-          <img src="{{ url_for('static', filename='results/' + session_id + '/photo_' ~ i ~ '.jpg') }}" width="200"><br>
-          <a href="{{ url_for('static', filename='results/' + session_id + '/photo_' ~ i ~ '.jpg') }}" download>
-            Download Photo {{ i }}
+          <img src="{{ url }}" width="200"><br>
+          <a href="{{ url }}" download>
+            Download Photo {{ loop.index }}
           </a>
         </div>
       {% endfor %}

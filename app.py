@@ -120,7 +120,13 @@ def result(session_id):
 # Route: Download Page
 @app.route('/download/<session_id>')
 def download_page(session_id):
-    return render_template("download.html", session_id=session_id)
+    photo_urls = [
+        f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_1.png",
+        f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_2.png",
+        f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_3.png",
+        f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_4.png"
+    ]
+    return render_template("download.html", session_id=session_id, photos=photo_urls)
 
 # Route: Reset to Homepage
 @app.route("/reset")
