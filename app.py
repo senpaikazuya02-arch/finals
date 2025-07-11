@@ -87,7 +87,7 @@ def save_session(session_id):
         path = f"temp/photo_{idx + 1}.png"
         image.save(path)
         local_photos.append(path)
-        template = Image.open("photostrip_template.png").convert("RGBA")
+        template = Image.open("static/texture/photostrip_template.png").convert("RGBA")
 
         positions = [
             (50, 100),
