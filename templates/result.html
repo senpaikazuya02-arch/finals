@@ -9,9 +9,7 @@
     <br>
     <a id="downloadLink" href="" target="_blank">Or tap here if the image doesn't load</a>
   </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
   const qrUrl = localStorage.getItem('qrUrl');
   if (qrUrl) {
@@ -21,4 +19,5 @@
     document.querySelector('.qr-result-page').innerHTML = '<p>QR Code not found. Please try again.</p>';
   }
 </script>
+
 {% endblock %}
