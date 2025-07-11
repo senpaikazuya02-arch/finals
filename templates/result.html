@@ -12,12 +12,12 @@
 
 <script>
   const qrUrl = localStorage.getItem('qrUrl');
+      const sessionId = "{{ session_id }}"; 
   if (qrUrl) {
     document.getElementById('qrImage').src = qrUrl;
-    document.getElementById('downloadLink').href = qrUrl;
+    document.getElementById('downloadLink').href = `/download/${sessionId}`;
   } else {
     document.querySelector('.qr-result-page').innerHTML = '<p>QR Code not found. Please try again.</p>';
   }
 </script>
-
 {% endblock %}
