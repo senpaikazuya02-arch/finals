@@ -84,7 +84,8 @@ def save_session(session_id):
         img_base64 = photo_data.split(',')[1]
         image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
         image = image.resize((300, 300))
-        path = f"temp/photo_{idx + 1}.png"
+        folder=f"sessions/{session_id}",
+        path = f"photo_{idx + 1}.png"
         image.save(path)
         local_photos.append(path)
         template = Image.open("static/texture/photostrip_template.png").convert("RGBA")
