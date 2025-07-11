@@ -15,7 +15,6 @@ cloudinary.config(
     api_secret="3mdsBSxQGOXW51MeGZcjYzB2SKI",
     secure=True
 )
-
 app = Flask(__name__)
 
 # Route: Homepage 
@@ -77,10 +76,42 @@ def videobooth(session_id):
 def save_session(session_id):
     data = request.get_json()
     photos = data['photos']
+    os.makedirs('temp', exist_ok=True)
+    local_photos = []
 
     upload_urls = []
     for idx, photo_data in enumerate(photos):
         img_base64 = photo_data.split(',')[1]
+        image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
+        image = image.resize((300, 300))
+        path = f"temp/photo_{idx + 1}.png"
+        image.save(path)
+        local_photos.append(path)
+        template = Image.open("photostrip_template.png").convert("RGBA")
+
+        positions = [
+            (50, 100),
+            (50, 450),
+            (50, 800),
+            (50, 1150)
+        ]
+
+    for i, path in enumerate(local_photos):
+        photo = Image.open(path).convert("RGBA")
+        template.paste(photo, positions[i], mask=photo)
+
+        final_path = f"temp/final_strip_{session_id}.png"
+        template.save(final_path)
+
+        upload_result = cloudinary.uploader.upload(
+            final_path,
+            folder=f"sessions/{session_id}",
+            public_id="final_strip",
+            overwrite=True
+        )
+
+        final_url = upload_result['secure_url']
+
         upload_result = cloudinary.uploader.upload(
             f"data:image/png;base64,{img_base64}",
             folder=f"sessions/{session_id}",
@@ -109,7 +140,8 @@ def save_session(session_id):
         'status': 'success', 
         'session_id': session_id, 
         'photos': upload_urls, 
-        'qr_url': qr_url
+        'qr_url': qr_url,
+        'final_url': final_url
     })
 
 # Route: Result Page
@@ -126,7 +158,8 @@ def download_page(session_id):
         f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_3.png",
         f"https://res.cloudinary.com/dhc8ckfmc/image/upload/v1/sessions/{session_id}/photo_4.png"
     ]
-    return render_template("download.html", session_id=session_id, photos=photo_urls)
+    final_url = f"https://res.cloudinary.com/dhc8ckfmc/image/upload/sessions/{session_id}/final_strip.png"
+    return render_template("download.html", session_id=session_id, photos=photo_urls, final_url=final_url)
 
 # Route: Reset to Homepage
 @app.route("/reset")

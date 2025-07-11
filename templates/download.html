@@ -7,11 +7,12 @@
     <h1>Your Session Photos</h1>
     <div>
       {% for url in photos %}
-        <div style="margin-bottom: 15px;">
+        <div class="download-content">
           <img src="{{ url }}" width="200"><br>
           <a href="{{ url }}" download>
             Download Photo {{ loop.index }}
           </a>
+          <img src="{{ final_url }}" alt="Photostrip" width="400"><br><br>
         </div>
       {% endfor %}
     </div>
