@@ -79,7 +79,7 @@ def save_session(session_id):
     os.makedirs('temp', exist_ok=True)
     local_photos = []
 
-    upload_urls = []
+
     for idx, photo_data in enumerate(photos):
         img_base64 = photo_data.split(',')[1]
         image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
@@ -88,7 +88,7 @@ def save_session(session_id):
         path = f"photo_{idx + 1}.png"
         image.save(path)
         local_photos.append(path)
-        template = Image.open("static/texture/photostrip_template.png").convert("RGBA")
+        template = Image.open("static/textures/photostrip_template.png").convert("RGBA")
 
         positions = [
             (50, 100),
@@ -110,9 +110,9 @@ def save_session(session_id):
             public_id="final_strip",
             overwrite=True
         )
-
         final_url = upload_result['secure_url']
 
+        upload_urls = []
         upload_result = cloudinary.uploader.upload(
             f"data:image/png;base64,{img_base64}",
             folder=f"sessions/{session_id}",
