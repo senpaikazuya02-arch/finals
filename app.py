@@ -83,7 +83,7 @@ def save_session(session_id):
     for idx, photo_data in enumerate(photos):
         img_base64 = photo_data.split(',')[1]
         image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
-        image = image.resize((500, 500))
+        image = image.resize((400, 400))
         folder=f"sessions/{session_id}",
         path = f"photo_{idx + 1}.png"
         image.save(path)
