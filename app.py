@@ -12,6 +12,7 @@ from cloudinary.utils import cloudinary_url
 import subprocess
 import ffmpeg
 import threading
+import shutil
 
 
 cloudinary.config(
@@ -70,6 +71,29 @@ def select():
 
     return render_template("select.html", session_id=session_id)
 
+def cleanup_temp_files(session_id):
+    """Remove all temporary files for a given session"""
+    temp_files = [
+        f"temp/photo_1_{session_id}.png",
+        f"temp/photo_2_{session_id}.png",
+        f"temp/photo_3_{session_id}.png",
+        f"temp/photo_4_{session_id}.png",
+        f"temp/final_strip_{session_id}.png",
+        f"temp/video_1_{session_id}.webm",
+        f"temp/video_2_{session_id}.webm",
+        f"temp/video_3_{session_id}.webm",
+        f"temp/video_4_{session_id}.webm",
+        f"temp/video_strip_{session_id}.webm"
+    ]
+    
+    for file_path in temp_files:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                print(f"Removed temporary file: {file_path}")
+        except Exception as e:
+            print(f"Error removing {file_path}: {str(e)}")
+
 # Route: Photobooth UI
 @app.route("/photobooth/<session_id>")
 def photobooth(session_id):
@@ -82,6 +106,7 @@ def videobooth(session_id):
 
 @app.route('/save_session/<session_id>', methods=['POST'])
 def save_session(session_id):
+    cleanup_temp_files(session_id)
     data = request.get_json()
     videos = data.get('videos', [])
     photos = data['photos']
@@ -108,7 +133,7 @@ def save_session(session_id):
         image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
         image = center_crop(image, target_width, target_height)        
 
-        path = f"photo_{idx + 1}.png"
+        path = f"temp/photo_{idx + 1}_{session_id}.png"
         image.save(path)
         local_photos.append(path)
 
@@ -195,41 +220,38 @@ def save_session(session_id):
 def generate_video_strip(session_id, video_paths, positions, center_x):
     with app.app_context():
         try:
-            # Get duration from first video
             probe = ffmpeg.probe(video_paths[0])
             video_duration = float(probe['format'].get('duration', 5.0))
             
             final_video_path = f"temp/video_strip_{session_id}.webm"
-            
-            # Build inputs
-            inputs = [
-                ffmpeg.input('static/textures/photostrip_template.png', loop=1, t=video_duration),
-                *[ffmpeg.input(path) for path in video_paths]
-            ]
-            
-            # Build filter chain
-            scaled_videos = [
-                inputs[i+1].filter('scale', 660, 390) 
-                for i in range(len(video_paths))
-            ]
-            
-            overlay = inputs[0]
-            for i, (video, pos) in enumerate(zip(scaled_videos, positions)):
-                overlay = overlay.overlay(video, x=pos[0], y=pos[1])
-            
-            # Run ffmpeg
-            (
-                overlay
-                .output(final_video_path, 
-                       vcodec='libvpx', 
-                       pix_fmt='yuv420p',
-                       crf=30, 
-                       preset='fast',
-                       s='707x2000')
-                .run(quiet=True, overwrite_output=True)
-            )
-            
-            # Upload to Cloudinary
+
+            subprocess.run([
+                "ffmpeg",
+                "-loop", "1",
+                "-t", str(video_duration),
+                "-i", "static/textures/photostrip_template.png",
+                "-i", video_paths[0],
+                "-i", video_paths[1],
+                "-i", video_paths[2],
+                "-i", video_paths[3],
+                "-filter_complex",
+                f"""
+                [1:v]scale=660:390:force_original_aspect_ratio=increase, crop=660:390[v0];
+                [2:v]scale=660:390:force_original_aspect_ratio=increase, crop=660:390[v1];
+                [3:v]scale=660:390:force_original_aspect_ratio=increase, crop=660:390[v2];
+                [4:v]scale=660:390:force_original_aspect_ratio=increase, crop=660:390[v3];
+                [0:v][v0]overlay={center_x}:{positions[0][1]}[tmp1];
+                [tmp1][v1]overlay={center_x}:{positions[1][1]}[tmp2];
+                [tmp2][v2]overlay={center_x}:{positions[2][1]}[tmp3];
+                [tmp3][v3]overlay={center_x}:{positions[3][1]}
+                """.strip().replace('\n', ''),
+                "-s", "707x2000",
+                "-pix_fmt", "yuv420p",
+                "-c:v", "libvpx",
+                "-y",
+                final_video_path
+            ], check=True)
+
             upload_result = cloudinary.uploader.upload(
                 final_video_path,
                 folder=f"sessions/{session_id}",
@@ -237,11 +259,16 @@ def generate_video_strip(session_id, video_paths, positions, center_x):
                 resource_type="video",
                 overwrite=True
             )
-            print("✅ Final video uploaded:", upload_result['secure_url'])
-            
+            print("✅ Final video uploaded.")
+            result_url = url_for('download_page', session_id=session_id, _external=True)
+            print("🔗 Video result page:", result_url)
+
         except Exception as e:
-            print("❌ Error generating video strip:", str(e))
-            
+            print("❌ Error in background FFmpeg job:", str(e))
+
+        finally:
+            cleanup_temp_files(session_id)
+
 def center_crop(image, target_width, target_height):
     width, height = image.size
 

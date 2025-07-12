@@ -84,7 +84,7 @@ function showPreview(index, dataURL) {
   const container = document.getElementById(`preview-${index + 1}`);
   container.innerHTML = `
     <div class="preview-wrapper">
-      <img src="${dataURL}" width="160" class="preview-img">
+      <img src="${dataURL}" class="preview-img">
       <img src="/static/textures/edit_icon.svg" class="retake-icon" onclick="retakePhoto(${index})" alt="Retake">
     </div>  
   `;
@@ -187,3 +187,8 @@ function stopRecording() {
     mediaRecorder.stop();
   }
 }
+
+document.querySelector('.qr-result-btn').addEventListener('click', () => {
+  localStorage.removeItem('qrUrl');
+  localStorage.removeItem('photoUrls');
+});

@@ -4,7 +4,12 @@
 
 {% block content %}
 
-<div id="reader" style="width:300px;"></div>
+<div class="qr-scanner">
+    <div id="reader" class="qr-scan" style="width: 500px;"></div>
+
+    <p class="instruction">Align QR code within the frame</p>
+</div>
+
 
 <script>
 function onScanSuccess(decodedText) {
@@ -29,6 +34,4 @@ function onScanSuccess(decodedText) {
         onScanSuccess
         );
 </script>
-
-
 {% endblock %}

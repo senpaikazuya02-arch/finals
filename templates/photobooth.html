@@ -7,7 +7,7 @@
     <div class="photobooth-content">
         <div class="photobooth-grid">
             <div class="ph-grid-1">
-                <video id="camera" autoplay playsinline width="1520" height="940"></video>
+                <video id="camera" autoplay playsinline width="1320" height="940"></video>
                 <canvas id="snapshot" width="640" height="480" style="display:none;"></canvas>
 
                 <h1 id="countdown" style="font-size: 48px; display: none;"></h1>
@@ -32,11 +32,15 @@
             </div>
 
             <div class="ph-grid-3">
-                 <div class="preview-content">
-                    <div id="preview-1"></div>
-                    <div id="preview-2"></div>
-                    <div id="preview-3"></div>
-                    <div id="preview-4"></div>
+                <div class="preview-content">
+                    <div class="photostrip-preview">
+                        <img src="{{ url_for('static', filename='textures/photostrip_template.png') }}" width="332.2px" height="940px" alt="template">
+
+                        <div id="preview-1" class="photo-slot" style="top: 20px; left: 20px;"></div>
+                        <div id="preview-2" class="photo-slot" style="top: 210px; left: 20px;"></div>
+                        <div id="preview-3" class="photo-slot" style="top: 400px; left: 20px;"></div>
+                        <div id="preview-4" class="photo-slot" style="top: 590px; left: 20px;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -44,7 +48,7 @@
                 <div class="photobooth-modal-content">
                     <h3>Picture Guide</h3>
                     <p>You'll take 4 photos, each with a 5-second countdown. Get ready!</p>
-                    <button onclick="closeModal()">OK, I'm Ready</button>
+                    <button onclick="closeModal()">OK!</button>
                 </div>
             </div>
 
