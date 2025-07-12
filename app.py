@@ -11,6 +11,8 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 import subprocess
 import ffmpeg
+import threading
+
 
 cloudinary.config(
     cloud_name="dhc8ckfmc",
@@ -19,6 +21,9 @@ cloudinary.config(
     secure=True
 )
 app = Flask(__name__)
+app.config['SERVER_NAME'] = 'photoz-qk29.onrender.com'
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+
 
 # Route: Homepage 
 @app.route("/")
@@ -154,56 +159,14 @@ def save_session(session_id):
         
 
     if len(video_paths) == 4:
-        try:
-            probe = ffmpeg.probe(video_paths[0])
-            video_duration = float(probe['format'].get('duration',5.0))
-
-            final_video_path = f"temp/video_strip_{session_id}.webm"
-            subprocess.run([
-                "ffmpeg",
-                "-loop", "1",
-                "-t", str(video_duration),
-                "-i", "static/textures/photostrip_template.png",  # template
-                "-i", video_paths[0],
-                "-i", video_paths[1],
-                "-i", video_paths[2],
-                "-i", video_paths[3],
-                "-filter_complex",
-                f"""
-                [1:v]scale=660:390[v0];
-                [2:v]scale=660:390[v1];
-                [3:v]scale=660:390[v2];
-                [4:v]scale=660:390[v3];
-                [0:v][v0]overlay={center_x}:{positions[0][1]}[tmp1];
-                [tmp1][v1]overlay={center_x}:{positions[1][1]}[tmp2];
-                [tmp2][v2]overlay={center_x}:{positions[2][1]}[tmp3];
-                [tmp3][v3]overlay={center_x}:{positions[3][1]}
-                """.strip().replace('\n', ''),
-                "-s", "707x2000",
-                "-pix_fmt", "yuv420p",
-                "-c:v", "libvpx",
-                "-y",
-                final_video_path
-            ], check=True)
-
-    
-            # Upload final video strip to Cloudinary
-            video_upload = cloudinary.uploader.upload(
-                final_video_path,
-                folder=f"sessions/{session_id}",
-                public_id="final_strip_video",
-                resource_type="video",
-                overwrite=True
-            )
-            final_video_url = video_upload['secure_url']
-            print("Uploaded final video strip:", final_video_url)
-        except Exception as e:
-            print("Video strip creation failed:", str(e))
-            final_video_url = None
+        threading.Thread(
+            target=generate_video_strip,
+            args=(session_id, video_paths, positions, center_x)
+        ).start()
+        final_video_url = None 
     else:
         final_video_url = None
         print("Skipping video strip: not all 4 videos available.")
-
 
     result_url = url_for('download_page', session_id=session_id, _external=True)
     qr = qrcode.make(result_url)
@@ -228,6 +191,54 @@ def save_session(session_id):
         'final_url': final_url,
         'final_video_url': final_video_url
     })
+
+def generate_video_strip(session_id, video_paths, positions, center_x):
+    with app.app_context():
+        try:
+            probe = ffmpeg.probe(video_paths[0])
+            video_duration = float(probe['format'].get('duration', 5.0))
+            final_video_path = f"temp/video_strip_{session_id}.webm"
+
+            subprocess.run([
+                "ffmpeg",
+                "-loop", "1",
+                "-t", str(video_duration),
+                "-i", "static/textures/photostrip_template.png",
+                "-i", video_paths[0],
+                "-i", video_paths[1],
+                "-i", video_paths[2],
+                "-i", video_paths[3],
+                "-filter_complex",
+                f"""
+                [1:v]scale=660:390[v0];
+                [2:v]scale=660:390[v1];
+                [3:v]scale=660:390[v2];
+                [4:v]scale=660:390[v3];
+                [0:v][v0]overlay={center_x}:{positions[0][1]}[tmp1];
+                [tmp1][v1]overlay={center_x}:{positions[1][1]}[tmp2];
+                [tmp2][v2]overlay={center_x}:{positions[2][1]}[tmp3];
+                [tmp3][v3]overlay={center_x}:{positions[3][1]}
+                """.strip().replace('\n', ''),
+                "-s", "707x2000",
+                "-pix_fmt", "yuv420p",
+                "-c:v", "libvpx",
+                "-y",
+                final_video_path
+            ], check=True)
+
+            upload_result = cloudinary.uploader.upload(
+                final_video_path,
+                folder=f"sessions/{session_id}",
+                public_id="final_strip_video",
+                resource_type="video",
+                overwrite=True
+            )
+            print("✅ Final video uploaded.")
+            result_url = url_for('download_page', session_id=session_id, _external=True)
+            print("🔗 Video result page:", result_url)
+
+        except Exception as e:
+            print("❌ Error in background FFmpeg job:", str(e))
 
 def center_crop(image, target_width, target_height):
     width, height = image.size
