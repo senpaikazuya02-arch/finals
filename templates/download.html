@@ -3,18 +3,17 @@
 {% block title %}Download Your Photos{% endblock %}
 
 {% block content %}
+
+    
   <div class="download-content">
     <h1>Your Session Photos</h1>
-    <div>
-      {% for url in photos %}
-        <div class="download-content">
-          <img src="{{ url }}" width="200"><br>
-          <a href="{{ url }}" download>
-            Download Photo {{ loop.index }}
-          </a>
-          <img src="{{ final_url }}" alt="Photostrip" width="400"><br><br>
-        </div>
-      {% endfor %}
-    </div>
+    <img src="{{ final_url }}" alt="Photostrip" width="400">
+
+    <h2>Your Countdown Video</h2>
+    <video controls width="400">
+      <source src="{{ final_video_url }}" type="video/webm">
+      Your browser does not support the video tag.
+    </video>
   </div>
+
 {% endblock %}

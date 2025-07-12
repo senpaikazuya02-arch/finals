@@ -49,6 +49,7 @@ function startCountdown() {
 
 function countdownAndCapture() {
   let timeLeft = 5;
+  startRecording();
   countdownEl.style.display = 'block';
   countdownEl.innerText = timeLeft;
 
@@ -58,6 +59,7 @@ function countdownAndCapture() {
 
     if (timeLeft === 0) {
       clearInterval(countdown);
+      stopRecording();
       countdownEl.style.display = 'none';
       capturePhoto();
     }
@@ -101,7 +103,6 @@ function showFinalActions() {
 
 function finishSession() {
   console.log('Finalizing session...');
-  // TODO: send `photos[]` to Flask via fetch POST
 }
 
 function startRetakeCountdown(index) {
@@ -122,7 +123,6 @@ function startRetakeCountdown(index) {
       photos[index] = imageData;
       showPreview(index, imageData);
 
-      // After retake, show "Done" again and hide ongoing text
       document.getElementById('final-buttons').style.display = 'block';
       document.querySelector('.ongoing-text').classList.add('hidden');
     }
@@ -142,7 +142,8 @@ function finishSession() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      photos: photos
+      photos: photos,
+      videos: videos
     })
   })
   .then(res => res.json())
@@ -156,3 +157,33 @@ function finishSession() {
   });
 }
 
+let mediaRecorder;
+let recordedChunks = [];
+let videos = [];
+
+function startRecording() {
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(video.srcObject, {
+    mimeType: 'video/webm;codecs=vp8'
+  });
+
+  mediaRecorder.ondataavailable = function(e) {
+    if (e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = function() {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = function() {
+      videos.push(reader.result);  // base64 string of video
+    };
+  };
+  mediaRecorder.start();
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+}
