@@ -494,17 +494,25 @@ body {
 
 /* Download */
 
-.download-content {
+.download-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
+  overflow-y: auto; 
+  padding: 20px 10px;
 }
 
+.download-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin: 30px 30px;
+}
 
 /* scanner */
-
 .qr-scanner {
   height: 100vh;
   display: flex;

@@ -4,16 +4,17 @@
 
 {% block content %}
 
-    
-  <div class="download-content">
-    <h1>Your Session Photos</h1>
-    <img src="{{ final_url }}" alt="Photostrip" width="400">
+  <div class="download-container">
+    <div class="download-content">
+      <h1 style="font-size: 30px;">Your Session Photos</h1>
+      <img src="{{ final_url }}" alt="Photostrip" width="400">
 
-    <h2>Your Countdown Video</h2>
-    <video controls width="400">
-      <source src="{{ final_video_url }}" type="video/webm">
-      Your browser does not support the video tag.
-    </video>
+      <h1 style="font-size: 30px; color: white;">---</h1>
+      <video controls width="400">
+        <source src="{{ final_video_url }}" type="video/webm">
+        Your browser does not support the video tag.
+      </video>
+    </div>
   </div>
-
+  
 {% endblock %}
