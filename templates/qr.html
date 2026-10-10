@@ -1,23 +1,31 @@
-<!doctype html>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+{% extends "base.html" %}
 
-<title>Get your QR</title>
-<body style="font-family:sans-serif;text-align:center;margin-top:40px">
+{% block title %}Get your QR{% endblock %}
+
+{% block content %}
+<div class="qr-page" style="text-align:center; margin-top:60px;">
   <h2>Get your QR code</h2>
 
-  <form method="post">
-    <input name="student_id" placeholder="Student ID" required>
-    <input name="surname" placeholder="Surname" required>
-    <button type="submit">Generate QR</button>
+  <form method="post" style="margin:20px 0;">
+    <input name="student_id" placeholder="Student ID" required
+           style="padding:10px; border-radius:8px; border:1px solid #999;">
+    <input name="surname" placeholder="Surname" required
+           style="padding:10px; border-radius:8px; border:1px solid #999;">
+    <button type="submit"
+            style="padding:10px 18px; border-radius:8px; border:2px solid #000; background:#fff; cursor:pointer;">
+      Generate QR
+    </button>
   </form>
 
   {% if qr_data %}
     <p>Show this to the scanner:</p>
-    <img src="data:image/png;base64,{{ qr_data }}" width="300">
+    <img src="data:image/png;base64,{{ qr_data }}" width="300"
+         style="background:#fff; padding:12px; border-radius:12px;">
     <p>
       <a download="my_qr.png" href="data:image/png;base64,{{ qr_data }}">Save QR to phone</a>
       &nbsp;|&nbsp;
       <a href="/scan">Go to scanner</a>
     </p>
   {% endif %}
-</body>
+</div>
+{% endblock %}
