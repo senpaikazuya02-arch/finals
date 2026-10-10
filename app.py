@@ -1,6 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import (
+    Flask, render_template, render_template_string,
+    request, redirect, url_for, jsonify
+)
 import base64
 import os, secrets, uuid, sqlite3, io
+import traceback
 from datetime import datetime
 from PIL import Image
 from PIL import ImageOps
@@ -14,33 +18,79 @@ import ffmpeg
 import threading
 import shutil
 from dotenv import load_dotenv
-
+from werkzeug.exceptions import HTTPException
+ 
 load_dotenv()
-
+ 
 cloudinary.config(
     cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
     api_key=os.environ["CLOUDINARY_API_KEY"],
     api_secret=os.environ["CLOUDINARY_API_SECRET"],
     secure=True
 )
-
+ 
 app = Flask(__name__)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
-
+ 
 # Only use the Render hostname when deployed on Render
 if os.environ.get("RENDER"):
     app.config['SERVER_NAME'] = 'photoz-qk29.onrender.com'
-
-# Route: Homepage 
+ 
+ 
+def valid_session(session_id):
+    """Session IDs are UUIDs created by /start_session."""
+    try:
+        uuid.UUID(session_id)
+        return True
+    except ValueError:
+        return False
+ 
+ 
+# Show the real error locally, a generic message when deployed
+@app.errorhandler(Exception)
+def handle_error(e):
+    if isinstance(e, HTTPException):
+        return e
+    traceback.print_exc()
+    msg = f'{type(e).__name__}: {e}' if app.debug else 'Something went wrong'
+    return jsonify({'status': 'error', 'error': msg}), 500
+ 
+ 
+# Route: Homepage
 @app.route("/")
 def index():
     return render_template("index.html")
-
+ 
+ 
 # Route: Scan
 @app.route("/scan")
 def scan():
     return render_template("scan.html")
-
+ 
+@app.route("/qr", methods=["GET", "POST"])
+def qr_page():
+    qr_data = None
+    if request.method == "POST":
+        # Commas are removed because scan.html splits the text at the comma
+        student_id = request.form["student_id"].strip().replace(",", "")
+        surname = request.form["surname"].strip().replace(",", "")
+        img = qrcode.make(f"{student_id},{surname}")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_data = base64.b64encode(buf.getvalue()).decode()
+    return render_template("qr.html", qr_data=qr_data)
+    qr_data = None
+    if request.method == "POST":
+        # Commas are removed because scan.html splits the text at the comma
+        student_id = request.form["student_id"].strip().replace(",", "")
+        surname = request.form["surname"].strip().replace(",", "")
+        img = qrcode.make(f"{student_id},{surname}")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_data = base64.b64encode(buf.getvalue()).decode()
+    return render_template_string(QR_PAGE, qr_data=qr_data)
+ 
+ 
 # Sessions
 @app.route('/start_session', methods=['POST'])
 def start_session():
@@ -48,7 +98,7 @@ def start_session():
     student_id = data['student_id']
     surname = data['surname']
     session_id = str(uuid.uuid4())
-
+ 
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('''
@@ -63,19 +113,19 @@ def start_session():
             (session_id, student_id, surname, datetime.now()))
     conn.commit()
     conn.close()
-
+ 
     return jsonify({ 'session_id': session_id })
-
-
+ 
 # Route: Mode Selection
 @app.route("/select")
 def select():
     session_id = request.args.get("session_id")
     if not session_id:
         return redirect(url_for("index"))
-
+ 
     return render_template("select.html", session_id=session_id)
-
+ 
+ 
 def cleanup_temp_files(session_id):
     """Remove all temporary files for a given session"""
     temp_files = [
@@ -90,7 +140,7 @@ def cleanup_temp_files(session_id):
         f"temp/video_4_{session_id}.webm",
         f"temp/video_strip_{session_id}.webm"
     ]
-    
+ 
     for file_path in temp_files:
         try:
             if os.path.exists(file_path):
@@ -98,58 +148,60 @@ def cleanup_temp_files(session_id):
                 print(f"Removed temporary file: {file_path}")
         except Exception as e:
             print(f"Error removing {file_path}: {str(e)}")
-
+ 
+ 
 # Route: Photobooth UI
 @app.route("/photobooth/<session_id>")
 def photobooth(session_id):
+    if not valid_session(session_id):
+        return "Invalid session", 400
     return render_template("photobooth.html", session_id=session_id)
-
+ 
+ 
 # Route: Videobooth UI
 @app.route("/videobooth/<session_id>")
 def videobooth(session_id):
+    if not valid_session(session_id):
+        return "Invalid session", 400
     return render_template("videobooth.html", session_id=session_id)
-
+ 
+ 
 @app.route('/save_session/<session_id>', methods=['POST'])
 def save_session(session_id):
+    if not valid_session(session_id):
+        return jsonify({'status': 'error', 'error': 'Invalid session'}), 400
+ 
     cleanup_temp_files(session_id)
     data = request.get_json()
-    if not isinstance(data, dict):
-        return jsonify({'status': 'error', 'message': 'Expected a JSON object.'}), 400
-
     videos = data.get('videos', [])
-    photos = data.get('photos')
-    if not isinstance(photos, list) or len(photos) != 4 or not all(isinstance(photo, str) for photo in photos):
-        return jsonify({'status': 'error', 'message': 'Expected exactly four photo data URLs.'}), 400
-    if not isinstance(videos, list):
-        return jsonify({'status': 'error', 'message': 'Videos must be a list.'}), 400
-
+    photos = data['photos']
     os.makedirs('temp', exist_ok=True)
     local_photos = []
     upload_urls = []
     template = Image.open("static/textures/photostrip_template.png").convert("RGBA")
     template_width, template_height = template.size
-
+ 
     target_width = 660
     target_height = 390
     gap = 20
     start_y = 30
     center_x = (template_width - target_width) // 2
-
+ 
     positions = []
     for i in range(4):
         y = start_y + i * (target_height + gap)
         positions.append((center_x, y))
-
+ 
     # photo
     for idx, photo_data in enumerate(photos):
         img_base64 = photo_data.split(',')[1]
         image = Image.open(BytesIO(base64.b64decode(img_base64))).convert("RGBA")
-        image = center_crop(image, target_width, target_height)        
-
+        image = center_crop(image, target_width, target_height)
+ 
         path = f"temp/photo_{idx + 1}_{session_id}.png"
         image.save(path)
         local_photos.append(path)
-
+ 
         upload_result = cloudinary.uploader.upload(
             f"data:image/png;base64,{img_base64}",
             folder=f"sessions/{session_id}",
@@ -158,33 +210,34 @@ def save_session(session_id):
         )
         upload_urls.append(upload_result['secure_url'])
         print(f"Uploaded photo {idx + 1} successfully")
-
+ 
+    final_url = None
     for i, path in enumerate(local_photos):
         photo = Image.open(path).convert("RGBA")
         template.paste(photo, positions[i], mask=photo)
-
-        final_path = f"temp/final_strip_{session_id}.png"
-        template.save(final_path)
-
-        upload_result = cloudinary.uploader.upload(
-            final_path,
-            folder=f"sessions/{session_id}",
-            public_id="final_strip",
-            overwrite=True
-        )
-        final_url = upload_result['secure_url']
-
+ 
+    final_path = f"temp/final_strip_{session_id}.png"
+    template.save(final_path)
+ 
+    upload_result = cloudinary.uploader.upload(
+        final_path,
+        folder=f"sessions/{session_id}",
+        public_id="final_strip",
+        overwrite=True
+    )
+    final_url = upload_result['secure_url']
+ 
     # video
     video_paths = []
     for idx, video_data in enumerate(videos):
         video_base64 = video_data.split(',')[1]
         video_bytes = base64.b64decode(video_base64)
-
+ 
         video_path = f"temp/video_{idx + 1}_{session_id}.webm"
         with open(video_path, 'wb') as f:
             f.write(video_bytes)
         video_paths.append(video_path)
-
+ 
         upload_result = cloudinary.uploader.upload(
             video_path,
             folder=f"sessions/{session_id}",
@@ -194,50 +247,50 @@ def save_session(session_id):
         )
         print(upload_result['secure_url'])
         print(f"Uploaded video {idx + 1} successfully")
-        
-
+ 
     if len(video_paths) == 4:
         threading.Thread(
             target=generate_video_strip,
             args=(session_id, video_paths, positions, center_x)
         ).start()
-        final_video_url = None 
+        final_video_url = None
     else:
         final_video_url = None
         print("Skipping video strip: not all 4 videos available.")
-
+ 
     result_url = url_for('download_page', session_id=session_id, _external=True)
     qr = qrcode.make(result_url)
     qr_stream = io.BytesIO()
     qr.save(qr_stream, format='PNG')
     qr_stream.seek(0)
     qr_upload = cloudinary.uploader.upload(
-        qr_stream, 
-        folder=f"sessions/{session_id}", 
-        public_id="qr", 
+        qr_stream,
+        folder=f"sessions/{session_id}",
+        public_id="qr",
         resource_type="image",
         invalidate=True
     )
     qr_url = qr_upload['secure_url']
     print("QR URL:", qr_url)
-
+ 
     return jsonify({
-        'status': 'success', 
-        'session_id': session_id, 
-        'photos': upload_urls, 
+        'status': 'success',
+        'session_id': session_id,
+        'photos': upload_urls,
         'qr_url': qr_url,
         'final_url': final_url,
         'final_video_url': final_video_url
     })
-
+ 
+ 
 def generate_video_strip(session_id, video_paths, positions, center_x):
     with app.app_context():
         try:
             probe = ffmpeg.probe(video_paths[0])
             video_duration = float(probe['format'].get('duration', 5.0))
-            
+ 
             final_video_path = f"temp/video_strip_{session_id}.webm"
-
+ 
             subprocess.run([
                 "ffmpeg",
                 "-loop", "1",
@@ -264,7 +317,7 @@ def generate_video_strip(session_id, video_paths, positions, center_x):
                 "-y",
                 final_video_path
             ], check=True)
-
+ 
             upload_result = cloudinary.uploader.upload(
                 final_video_path,
                 folder=f"sessions/{session_id}",
@@ -272,22 +325,21 @@ def generate_video_strip(session_id, video_paths, positions, center_x):
                 resource_type="video",
                 overwrite=True
             )
-            print("✅ Final video uploaded.")
-            result_url = url_for('download_page', session_id=session_id, _external=True)
-            print("🔗 Video result page:", result_url)
-
+            print("Final video uploaded.")
+ 
         except Exception as e:
-            print("❌ Error in background FFmpeg job:", str(e))
-
+            print("Error in background FFmpeg job:", str(e))
+ 
         finally:
             cleanup_temp_files(session_id)
-
+ 
+ 
 def center_crop(image, target_width, target_height):
     width, height = image.size
-
+ 
     target_ratio = target_width / target_height
     original_ratio = width / height
-
+ 
     if original_ratio > target_ratio:
         new_width = int(height * target_ratio)
         left = (width - new_width) // 2
@@ -296,25 +348,34 @@ def center_crop(image, target_width, target_height):
         new_height = int(width / target_ratio)
         top = (height - new_height) // 2
         image = image.crop((0, top, width, top + new_height))
-
+ 
     return image.resize((target_width, target_height), Image.LANCZOS)
-
+ 
+ 
 # Route: Result Page
 @app.route("/result/<session_id>")
 def result(session_id):
+    if not valid_session(session_id):
+        return "Invalid session", 400
     return render_template("result.html", session_id=session_id)
-
+ 
+ 
 # Route: Download Page
 @app.route('/download/<session_id>')
 def download_page(session_id):
-    final_video_url = f"https://res.cloudinary.com/dhc8ckfmc/video/upload/sessions/{session_id}/final_strip_video.webm"
-    final_url = f"https://res.cloudinary.com/dhc8ckfmc/image/upload/sessions/{session_id}/final_strip.png"
+    if not valid_session(session_id):
+        return "Invalid session", 400
+    cloud = os.environ["CLOUDINARY_CLOUD_NAME"]
+    final_video_url = f"https://res.cloudinary.com/{cloud}/video/upload/sessions/{session_id}/final_strip_video.webm"
+    final_url = f"https://res.cloudinary.com/{cloud}/image/upload/sessions/{session_id}/final_strip.png"
     return render_template("download.html", session_id=session_id, final_url=final_url, final_video_url=final_video_url)
-
+ 
+ 
 # Route: Reset to Homepage
 @app.route("/reset")
 def reset():
     return redirect(url_for("index"))
-
+ 
+ 
 if __name__ == '__main__':
     app.run(debug=True)

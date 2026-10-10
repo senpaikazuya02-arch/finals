@@ -3,3 +3,6 @@ venv/
 env/
 temp/
 __pycache__/
+database.db
+test_qr.png
+make_qr.py
