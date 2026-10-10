@@ -138,46 +138,71 @@ navigator.mediaDevices.getUserMedia({ video: true })
 });
 
 function finishSession() {
+  return finishSessionAfterRecording();
+}
+
+async function finishSessionAfterRecording() {
+  await recordingStopped;
+
   fetch(`/save_session/${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       photos: photos,
-      videos: videos
+      videos: videos.filter(video => typeof video === 'string')
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) {
+      return res.text().then(body => {
+        console.error('Save session response:', body);
+        throw new Error('Server error ' + res.status);
+      });
+    }
+    return res.json();
+  })
   .then(data => {
     if (data.status === 'success') {
       localStorage.setItem('photoUrls', JSON.stringify(data.photos));
       localStorage.setItem('qrUrl', data.qr_url);
       window.location.href = `/result/${sessionId}`;
-      console.log(localStorage.getItem('qrUrl'));
     }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Could not save the session. Check the Flask terminal for the error.');
   });
 }
 
 let mediaRecorder;
 let recordedChunks = [];
 let videos = [];
+let recordingStopped = Promise.resolve();
 
 function startRecording() {
   recordedChunks = [];
+  const recordingIndex = currentShot;
   mediaRecorder = new MediaRecorder(video.srcObject, {
     mimeType: 'video/webm;codecs=vp8'
   });
 
+  recordingStopped = new Promise(resolve => {
+    mediaRecorder.onstop = function() {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        if (typeof reader.result === 'string' && blob.size > 0) {
+          videos[recordingIndex] = reader.result;
+        }
+        resolve();
+      };
+      reader.onerror = resolve;
+      reader.readAsDataURL(blob);
+    };
+  });
+
   mediaRecorder.ondataavailable = function(e) {
     if (e.data.size > 0) recordedChunks.push(e.data);
-  };
-
-  mediaRecorder.onstop = function() {
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = function() {
-      videos.push(reader.result);  // base64 string of video
-    };
   };
   mediaRecorder.start();
 }
@@ -188,7 +213,10 @@ function stopRecording() {
   }
 }
 
-document.querySelector('.qr-result-btn').addEventListener('click', () => {
-  localStorage.removeItem('qrUrl');
-  localStorage.removeItem('photoUrls');
-});
+const qrResultBtn = document.querySelector('.qr-result-btn');
+if (qrResultBtn) {
+  qrResultBtn.addEventListener('click', () => {
+    localStorage.removeItem('qrUrl');
+    localStorage.removeItem('photoUrls');
+  });
+}

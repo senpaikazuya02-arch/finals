@@ -13,18 +13,23 @@ import subprocess
 import ffmpeg
 import threading
 import shutil
+from dotenv import load_dotenv
 
+load_dotenv()
 
 cloudinary.config(
-    cloud_name="dhc8ckfmc",
-    api_key="589785367198677",
-    api_secret="3mdsBSxQGOXW51MeGZcjYzB2SKI",
+    cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+    api_key=os.environ["CLOUDINARY_API_KEY"],
+    api_secret=os.environ["CLOUDINARY_API_SECRET"],
     secure=True
 )
+
 app = Flask(__name__)
-app.config['SERVER_NAME'] = 'photoz-qk29.onrender.com'
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 
+# Only use the Render hostname when deployed on Render
+if os.environ.get("RENDER"):
+    app.config['SERVER_NAME'] = 'photoz-qk29.onrender.com'
 
 # Route: Homepage 
 @app.route("/")
@@ -108,8 +113,16 @@ def videobooth(session_id):
 def save_session(session_id):
     cleanup_temp_files(session_id)
     data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'status': 'error', 'message': 'Expected a JSON object.'}), 400
+
     videos = data.get('videos', [])
-    photos = data['photos']
+    photos = data.get('photos')
+    if not isinstance(photos, list) or len(photos) != 4 or not all(isinstance(photo, str) for photo in photos):
+        return jsonify({'status': 'error', 'message': 'Expected exactly four photo data URLs.'}), 400
+    if not isinstance(videos, list):
+        return jsonify({'status': 'error', 'message': 'Videos must be a list.'}), 400
+
     os.makedirs('temp', exist_ok=True)
     local_photos = []
     upload_urls = []
